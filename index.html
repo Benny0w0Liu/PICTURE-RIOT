@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1018">
+  <meta name="description" content="把自己的照片變成一場打磚塊遊戲。">
+  <title>PIXEL BREAK — 把照片打成一場遊戲</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1018;
+      --panel: #141b27;
+      --line: #293548;
+      --text: #f1f4f8;
+      --muted: #9aa8ba;
+      --lime: #d6ff62;
+      --cyan: #58d9e8;
+      --pink: #ff718e;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      background: radial-gradient(ellipse at 50% -20%, rgb(49 76 103 / 28%), transparent 55%), var(--bg);
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, .drop-zone:focus-visible {
+      outline: 3px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    .shell { width: min(100% - 40px, 1040px); margin: 0 auto; padding: 28px 0 46px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 48px; }
+    .brand { display: flex; align-items: center; gap: 11px; color: var(--text); font-size: 15px; font-weight: 850; letter-spacing: .12em; text-decoration: none; }
+    .brand-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; color: var(--bg); background: var(--lime); font-size: 18px; letter-spacing: 0; }
+    .privacy { color: var(--muted); font-size: 12px; }
+    .privacy span { margin-right: 6px; color: var(--lime); }
+
+    .stepper { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 28px; }
+    .step { display: flex; align-items: center; gap: 8px; color: #738094; font-size: 12px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+    .step-number { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); font-size: 11px; }
+    .step.is-current, .step.is-complete { color: var(--text); }
+    .step.is-current .step-number, .step.is-complete .step-number { border-color: var(--lime); color: var(--bg); background: var(--lime); }
+    .step-line { width: clamp(22px, 7vw, 64px); height: 1px; background: var(--line); }
+
+    .view { display: none; animation: appear 260ms ease both; }
+    .view.is-visible { display: block; }
+    @keyframes appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+    .intro { max-width: 720px; margin: 0 auto 30px; text-align: center; }
+    .eyebrow { margin: 0 0 12px; color: var(--lime); font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 12px; font-size: clamp(34px, 6vw, 58px); font-weight: 850; letter-spacing: -.055em; line-height: 1.06; }
+    h1 .accent { color: var(--lime); }
+    .lede { max-width: 530px; margin: 0 auto; color: var(--muted); font-size: 15px; line-height: 1.8; }
+    .upload-card, .crop-card, .game-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgb(26 36 50 / 90%), rgb(17 23 33 / 96%));
+      box-shadow: 0 22px 70px rgb(0 0 0 / 22%);
+    }
+    .upload-card { max-width: 700px; margin: 0 auto; padding: 16px; }
+    .drop-zone {
+      display: flex;
+      min-height: 250px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 18px;
+      border: 1px dashed #47566b;
+      border-radius: 12px;
+      background: repeating-conic-gradient(#ffffff05 0% 25%, transparent 0% 50%) 0 0 / 16px 16px;
+      text-align: center;
+      transition: border-color 160ms ease, background-color 160ms ease;
+    }
+    .drop-zone.is-dragging { border-color: var(--lime); background-color: rgb(214 255 98 / 6%); }
+    .upload-icon { display: grid; width: 58px; height: 58px; margin-bottom: 16px; place-items: center; border: 1px solid #354456; border-radius: 17px; color: var(--lime); background: #192432; font-size: 26px; }
+    .drop-zone h2 { margin-bottom: 6px; font-size: 18px; }
+    .drop-zone p { margin-bottom: 18px; color: var(--muted); font-size: 13px; }
+
+    .button {
+      display: inline-flex;
+      min-height: 46px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 19px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease;
+    }
+    .button:hover { transform: translateY(-1px); }
+    .button:active { transform: translateY(0); }
+    .button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .button-primary { color: #10150a; background: var(--lime); }
+    .button-primary:hover { background: #e2ff92; }
+    .button-secondary { border-color: #39485b; color: var(--text); background: #202b3a; }
+    .button-secondary:hover { border-color: #63748a; background: #263448; }
+    .button-quiet { border-color: #344154; color: #c5cfdb; background: transparent; }
+    .button-quiet:hover { border-color: #66768d; }
+    .button-small { min-height: 38px; padding: 0 13px; font-size: 12px; }
+    .supported { margin: 13px 0 0; color: #718096; font-size: 11px; text-align: center; }
+    .message { min-height: 23px; margin: 10px 0 0; color: var(--pink); font-size: 13px; text-align: center; }
+
+    .section-heading { margin-bottom: 22px; text-align: center; }
+    .section-heading h1 { font-size: clamp(29px, 5vw, 42px); }
+    .section-heading .lede { font-size: 14px; }
+    .crop-card { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; max-width: 850px; margin: 0 auto; padding: 22px; }
+    .crop-stage { display: grid; min-width: 0; place-items: center; padding: 12px; border: 1px solid #253143; border-radius: 12px; background: radial-gradient(circle at center, #202b39, #111722 70%); }
+    #cropCanvas { display: block; width: min(100%, 520px); aspect-ratio: 1; border: 1px solid rgb(255 255 255 / 18%); border-radius: 5px; cursor: grab; touch-action: none; }
+    #cropCanvas:active { cursor: grabbing; }
+    .crop-controls { display: flex; flex-direction: column; justify-content: center; gap: 19px; }
+    .control-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; font-size: 13px; font-weight: 750; }
+    .control-hint, .crop-note { color: var(--muted); font-size: 12px; line-height: 1.65; }
+    input[type="range"] { width: 100%; accent-color: var(--lime); cursor: pointer; }
+    .crop-buttons, .game-actions, .result-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+    .crop-buttons .button { flex: 1; }
+
+    .game-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 19px; }
+    .game-title .eyebrow { margin-bottom: 7px; }
+    .game-title h1 { margin-bottom: 0; font-size: clamp(26px, 4vw, 38px); }
+    .game-actions { justify-content: flex-end; }
+    .game-stats { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 12px; }
+    .stat { display: flex; min-height: 42px; align-items: center; gap: 9px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; background: #131a25; color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
+    .stat strong { color: var(--text); font-size: 15px; letter-spacing: 0; }
+    .stat .lives { color: var(--pink); letter-spacing: .04em; }
+    .game-card { position: relative; display: flex; justify-content: center; overflow: hidden; padding: 8px; background: #0b1017; }
+    #gameCanvas { display: block; width: min(100%, 900px); height: auto; border-radius: 11px; background: #101722; touch-action: none; }
+    .game-overlay { position: absolute; inset: 8px; display: none; align-items: center; justify-content: center; padding: 20px; border-radius: 11px; background: rgb(7 11 17 / 76%); text-align: center; backdrop-filter: blur(7px); }
+    .game-overlay.is-visible { display: flex; }
+    .result-card { width: min(100%, 430px); padding: 26px; border: 1px solid #37465a; border-radius: 16px; background: #151e2a; box-shadow: 0 20px 65px rgb(0 0 0 / 35%); }
+    .result-card img { display: none; width: min(100%, 200px); aspect-ratio: 1; margin: 0 auto 16px; border: 1px solid #647184; border-radius: 9px; object-fit: cover; }
+    .result-card.is-victory img { display: block; }
+    .result-card .eyebrow { margin-bottom: 8px; }
+    .result-card h2 { margin-bottom: 8px; font-size: 29px; }
+    .result-card p:not(.eyebrow) { color: var(--muted); font-size: 13px; }
+    .result-actions { justify-content: center; margin-top: 19px; }
+    .game-hint { margin: 12px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+    .game-hint kbd { padding: 2px 6px; border: 1px solid #39485b; border-radius: 5px; color: #dce3eb; background: #182231; font: inherit; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+    footer { margin-top: 38px; color: #758195; font-size: 11px; text-align: center; }
+
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 28px, 560px); padding-top: 19px; }
+      .topbar { margin-bottom: 31px; }
+      .crop-card { grid-template-columns: 1fr; gap: 19px; padding: 14px; }
+      .crop-controls { gap: 13px; }
+      .crop-note { margin: 0; }
+      .game-top { align-items: flex-start; flex-direction: column; margin-bottom: 14px; }
+      .game-actions { width: 100%; justify-content: flex-start; }
+      .game-actions .button { flex: 1; }
+      .game-card { padding: 5px; }
+      .game-overlay { inset: 5px; }
+    }
+    @media (max-height: 850px) {
+      .shell { padding-top: 14px; padding-bottom: 14px; }
+      .topbar { margin-bottom: 18px; }
+      .stepper { margin-bottom: 16px; }
+      .game-top { margin-bottom: 10px; }
+      .game-stats { gap: 7px; margin-bottom: 8px; }
+      .stat { min-height: 36px; }
+      .game-hint { margin-top: 8px; }
+      footer { margin-top: 16px; }
+    }
+    @media (max-height: 600px) {
+      .shell { padding-top: 8px; padding-bottom: 8px; }
+      .topbar { margin-bottom: 10px; }
+      .stepper { margin-bottom: 10px; }
+      .game-hint, footer { display: none; }
+    }
+    @media (max-height: 850px) {
+      #gameCanvas { width: min(100%, 900px, max(300px, calc(150vh - 540px))); }
+    }
+    @supports (height: 100svh) {
+      #gameCanvas { width: min(100%, 900px, max(300px, calc(150svh - 540px))); }
+    }
+    @media (max-width: 420px) {
+      .shell { width: min(100% - 22px, 390px); }
+      .privacy { max-width: 128px; font-size: 10px; text-align: right; }
+      .stepper { gap: 7px; }
+      .step { gap: 5px; font-size: 10px; }
+      .step-number { width: 24px; height: 24px; }
+      .upload-card { padding: 10px; }
+      .drop-zone { min-height: 225px; }
+      .stat { flex: 1; justify-content: center; padding: 0 8px; font-size: 10px; }
+      .stat strong { font-size: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="PIXEL BREAK 首頁"><span class="brand-mark" aria-hidden="true">▦</span><span>PIXEL BREAK</span></a>
+      <span class="privacy"><span aria-hidden="true">●</span>你的照片只留在你的裝置裡</span>
+    </header>
+
+    <nav class="stepper" aria-label="製作流程">
+      <div class="step is-current" id="stepUpload"><span class="step-number">01</span><span>選擇照片</span></div>
+      <span class="step-line" aria-hidden="true"></span>
+      <div class="step" id="stepCrop"><span class="step-number">02</span><span>調整裁切</span></div>
+      <span class="step-line" aria-hidden="true"></span>
+      <div class="step" id="stepPlay"><span class="step-number">03</span><span>開始遊戲</span></div>
+    </nav>
+
+    <main>
+      <section class="view is-visible" id="uploadView" aria-labelledby="uploadTitle">
+        <div class="intro">
+          <p class="eyebrow">YOUR PHOTO, YOUR GAME</p>
+          <h1 id="uploadTitle">把照片打成<br><span class="accent">一場遊戲。</span></h1>
+          <p class="lede">選一張你喜歡的照片，裁成正方形，再用球和擋板把它一塊一塊拼回來。</p>
+        </div>
+        <div class="upload-card">
+          <div class="drop-zone" id="dropZone" aria-label="拖曳圖片到此處">
+            <div class="upload-icon" aria-hidden="true">↥</div>
+            <h2>準備好你的主角了嗎？</h2>
+            <p>拖曳照片到這裡，或從裝置中挑選一張</p>
+            <button class="button button-primary" id="chooseImageButton" type="button">選擇照片 <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="supported">支援 JPG、PNG、WebP｜圖片只在瀏覽器中處理，不會上傳</p>
+          <p class="message" id="uploadMessage" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="view" id="cropView" aria-labelledby="cropTitle">
+        <div class="section-heading">
+          <p class="eyebrow">STEP 02 · MAKE IT SQUARE</p>
+          <h1 id="cropTitle">調整你的畫面</h1>
+          <p class="lede">拖曳照片移動構圖，讓重要的畫面留在正方形裡。</p>
+        </div>
+        <div class="crop-card">
+          <div class="crop-stage"><canvas id="cropCanvas" width="600" height="600" aria-label="正方形圖片裁切預覽，可拖曳調整構圖"></canvas></div>
+          <div class="crop-controls">
+            <div>
+              <label class="control-label" for="zoomSlider"><span>縮放照片</span><span id="zoomValue">100%</span></label>
+              <input id="zoomSlider" type="range" min="100" max="300" value="100" aria-label="縮放裁切圖片">
+              <p class="control-hint">放大後可拖曳，調整想保留的範圍。</p>
+            </div>
+            <p class="crop-note">裁切預覽為正方形，確認後會用這張照片製作磚塊。</p>
+            <div class="crop-buttons">
+              <button class="button button-secondary" id="resetCropButton" type="button">重設</button>
+              <button class="button button-primary" id="confirmCropButton" type="button">確認裁切 <span aria-hidden="true">→</span></button>
+            </div>
+            <p class="message" id="cropMessage" role="status" aria-live="polite"></p>
+            <button class="button button-quiet" id="backToUploadButton" type="button">← 返回選圖</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="gameView" aria-labelledby="gameTitle">
+        <div class="game-top">
+          <div class="game-title"><p class="eyebrow">STEP 03 · PUT IT BACK TOGETHER</p><h1 id="gameTitle">找回這張照片。</h1></div>
+          <div class="game-actions">
+            <button class="button button-primary button-small" id="startButton" type="button">開始遊戲 <span aria-hidden="true">▶</span></button>
+            <button class="button button-secondary button-small" id="pauseButton" type="button">暫停 <span aria-hidden="true">Ⅱ</span></button>
+            <button class="button button-quiet button-small" id="restartButton" type="button">重新開始</button>
+            <button class="button button-quiet button-small" id="changeImageButton" type="button">更換照片</button>
+          </div>
+        </div>
+        <div class="game-stats" aria-label="遊戲狀態">
+          <div class="stat"><span>分數</span><strong id="scoreValue">000</strong></div>
+          <div class="stat"><span>剩餘磚塊</span><strong id="brickValue">64</strong></div>
+          <div class="stat"><span>生命</span><strong class="lives" id="livesValue">♥ ♥ ♥</strong></div>
+          <div class="stat"><span>狀態</span><strong id="statusValue">準備開始</strong></div>
+        </div>
+        <div class="game-card">
+          <canvas id="gameCanvas" width="900" height="600" aria-label="打磚塊遊戲區" tabindex="0"></canvas>
+          <div class="game-overlay" id="gameOverlay" aria-live="polite">
+            <div class="result-card" id="resultCard">
+              <img id="victoryImage" alt="已拼回完整的裁切照片">
+              <p class="eyebrow" id="resultEyebrow">ROUND COMPLETE</p>
+              <h2 id="resultTitle">拼回來了！</h2>
+              <p id="resultMessage">每一塊都是你的回憶。</p>
+              <div class="result-actions">
+                <button class="button button-primary" id="playAgainButton" type="button">再玩一次</button>
+                <button class="button button-secondary" id="resultChangeButton" type="button">換一張照片</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="game-hint">移動擋板接住球。使用 <kbd>←</kbd> <kbd>→</kbd> 方向鍵、滑鼠，或在畫面上觸控拖曳；按 <kbd>Space</kbd> 暫停。</p>
+      </section>
+
+      <input class="visually-hidden" id="imageInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif">
+    </main>
+    <footer>PIXEL BREAK · 一場只屬於你的照片遊戲</footer>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const CROP_SIZE = 600;
+      const OUTPUT_SIZE = 1024;
+      const GAME_WIDTH = 900;
+      const GAME_HEIGHT = 600;
+      const BRICK_COLUMNS = 8;
+      const BRICK_ROWS = 8;
+      const BRICK_SIZE = 400;
+      const BRICK_GAP = 5;
+      const BRICK_X = (GAME_WIDTH - BRICK_SIZE) / 2;
+      const BRICK_Y = 48;
+      const PADDLE_WIDTH = 128;
+      const PADDLE_HEIGHT = 15;
+      const BALL_RADIUS = 9;
+      const INITIAL_LIVES = 3;
+      const MAX_FRAME_DELTA = 0.032;
+
+      const elements = {
+        uploadView: document.querySelector("#uploadView"),
+        cropView: document.querySelector("#cropView"),
+        gameView: document.querySelector("#gameView"),
+        stepUpload: document.querySelector("#stepUpload"),
+        stepCrop: document.querySelector("#stepCrop"),
+        stepPlay: document.querySelector("#stepPlay"),
+        imageInput: document.querySelector("#imageInput"),
+        chooseImageButton: document.querySelector("#chooseImageButton"),
+        dropZone: document.querySelector("#dropZone"),
+        uploadMessage: document.querySelector("#uploadMessage"),
+        cropCanvas: document.querySelector("#cropCanvas"),
+        cropMessage: document.querySelector("#cropMessage"),
+        zoomSlider: document.querySelector("#zoomSlider"),
+        zoomValue: document.querySelector("#zoomValue"),
+        resetCropButton: document.querySelector("#resetCropButton"),
+        confirmCropButton: document.querySelector("#confirmCropButton"),
+        backToUploadButton: document.querySelector("#backToUploadButton"),
+        gameCanvas: document.querySelector("#gameCanvas"),
+        startButton: document.querySelector("#startButton"),
+        pauseButton: document.querySelector("#pauseButton"),
+        restartButton: document.querySelector("#restartButton"),
+        changeImageButton: document.querySelector("#changeImageButton"),
+        scoreValue: document.querySelector("#scoreValue"),
+        brickValue: document.querySelector("#brickValue"),
+        livesValue: document.querySelector("#livesValue"),
+        statusValue: document.querySelector("#statusValue"),
+        gameOverlay: document.querySelector("#gameOverlay"),
+        resultCard: document.querySelector("#resultCard"),
+        resultEyebrow: document.querySelector("#resultEyebrow"),
+        resultTitle: document.querySelector("#resultTitle"),
+        resultMessage: document.querySelector("#resultMessage"),
+        victoryImage: document.querySelector("#victoryImage"),
+        playAgainButton: document.querySelector("#playAgainButton"),
+        resultChangeButton: document.querySelector("#resultChangeButton")
+      };
+
+      const cropContext = elements.cropCanvas.getContext("2d");
+      const gameContext = elements.gameCanvas.getContext("2d");
+      const crop = { image: null, baseScale: 1, zoom: 1, offsetX: 0, offsetY: 0, pointerId: null, lastX: 0, lastY: 0 };
+      const game = {
+        image: null,
+        bitmap: null,
+        bricks: [],
+        score: 0,
+        lives: INITIAL_LIVES,
+        state: "idle",
+        paddleX: GAME_WIDTH / 2,
+        ballX: GAME_WIDTH / 2,
+        ballY: GAME_HEIGHT - 76,
+        ballVX: 205,
+        ballVY: -330,
+        leftPressed: false,
+        rightPressed: false,
+        lastFrame: 0,
+        animationId: 0,
+        pointerActive: false
+      };
+      let sourceUrl = null;
+      let imageLoadId = 0;
+
+      function setView(name) {
+        const views = { upload: elements.uploadView, crop: elements.cropView, game: elements.gameView };
+        Object.entries(views).forEach(([key, view]) => {
+          const visible = key === name;
+          view.classList.toggle("is-visible", visible);
+          view.setAttribute("aria-hidden", String(!visible));
+        });
+        elements.stepUpload.classList.toggle("is-current", name === "upload");
+        elements.stepUpload.classList.toggle("is-complete", name !== "upload");
+        elements.stepCrop.classList.toggle("is-current", name === "crop");
+        elements.stepCrop.classList.toggle("is-complete", name === "game");
+        elements.stepPlay.classList.toggle("is-current", name === "game");
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function fitCropImage() {
+        if (!crop.image) return;
+        crop.baseScale = Math.max(CROP_SIZE / crop.image.naturalWidth, CROP_SIZE / crop.image.naturalHeight);
+        crop.zoom = 1;
+        crop.offsetX = 0;
+        crop.offsetY = 0;
+        elements.zoomSlider.value = "100";
+        elements.zoomValue.textContent = "100%";
+        drawCrop();
+      }
+
+      function constrainCrop() {
+        const width = crop.image.naturalWidth * crop.baseScale * crop.zoom;
+        const height = crop.image.naturalHeight * crop.baseScale * crop.zoom;
+        crop.offsetX = clamp(crop.offsetX, CROP_SIZE - width, 0);
+        crop.offsetY = clamp(crop.offsetY, CROP_SIZE - height, 0);
+      }
+
+      function drawCrop() {
+        if (!crop.image) return;
+        constrainCrop();
+        const width = crop.image.naturalWidth * crop.baseScale * crop.zoom;
+        const height = crop.image.naturalHeight * crop.baseScale * crop.zoom;
+        cropContext.clearRect(0, 0, CROP_SIZE, CROP_SIZE);
+        cropContext.fillStyle = "#111722";
+        cropContext.fillRect(0, 0, CROP_SIZE, CROP_SIZE);
+        cropContext.drawImage(crop.image, CROP_SIZE / 2 + crop.offsetX - width / 2, CROP_SIZE / 2 + crop.offsetY - height / 2, width, height);
+      }
+
+      function resetCrop() {
+        fitCropImage();
+      }
+
+      function onCropPointerDown(event) {
+        if (!crop.image) return;
+        crop.pointerId = event.pointerId;
+        crop.lastX = event.clientX;
+        crop.lastY = event.clientY;
+        elements.cropCanvas.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      }
+
+      function onCropPointerMove(event) {
+        if (crop.pointerId !== event.pointerId) return;
+        const bounds = elements.cropCanvas.getBoundingClientRect();
+        crop.offsetX += (event.clientX - crop.lastX) * CROP_SIZE / bounds.width;
+        crop.offsetY += (event.clientY - crop.lastY) * CROP_SIZE / bounds.height;
+        crop.lastX = event.clientX;
+        crop.lastY = event.clientY;
+        drawCrop();
+        event.preventDefault();
+      }
+
+      function onCropPointerUp(event) {
+        if (crop.pointerId !== event.pointerId) return;
+        crop.pointerId = null;
+        if (elements.cropCanvas.hasPointerCapture(event.pointerId)) elements.cropCanvas.releasePointerCapture(event.pointerId);
+      }
+
+      function showUploadError(message) {
+        elements.uploadMessage.textContent = message;
+      }
+
+      function loadImageFile(file) {
+        if (!file) return;
+        const loadId = ++imageLoadId;
+        if (!file.type.startsWith("image/")) {
+          showUploadError("這個檔案不是圖片，請選擇 JPG、PNG 或 WebP。");
+          return;
+        }
+        const nextUrl = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => {
+          if (loadId !== imageLoadId) {
+            URL.revokeObjectURL(nextUrl);
+            return;
+          }
+          if (!image.naturalWidth || !image.naturalHeight) {
+            URL.revokeObjectURL(nextUrl);
+            showUploadError("無法讀取這張圖片，請換一張試試。");
+            return;
+          }
+          if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+          sourceUrl = nextUrl;
+          if (game.image) URL.revokeObjectURL(game.image);
+          game.image = null;
+          game.bitmap = null;
+          crop.image = image;
+          resetCrop();
+          elements.uploadMessage.textContent = "";
+          elements.cropMessage.textContent = "";
+          setView("crop");
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(nextUrl);
+          if (loadId === imageLoadId) showUploadError("無法讀取這張圖片，請確認格式後再試一次。");
+        };
+        image.src = nextUrl;
+      }
+
+      function openFilePicker() {
+        elements.uploadMessage.textContent = "";
+        elements.imageInput.click();
+      }
+
+      function confirmCrop() {
+        if (!crop.image) return;
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = OUTPUT_SIZE;
+        exportCanvas.height = OUTPUT_SIZE;
+        const context = exportCanvas.getContext("2d");
+        const ratio = OUTPUT_SIZE / CROP_SIZE;
+        const drawWidth = crop.image.naturalWidth * crop.baseScale * crop.zoom;
+        const drawHeight = crop.image.naturalHeight * crop.baseScale * crop.zoom;
+        const x = (CROP_SIZE / 2 + crop.offsetX - drawWidth / 2) * ratio;
+        const y = (CROP_SIZE / 2 + crop.offsetY - drawHeight / 2) * ratio;
+        context.drawImage(crop.image, x, y, drawWidth * ratio, drawHeight * ratio);
+        exportCanvas.toBlob((blob) => {
+          if (!blob) {
+            elements.cropMessage.textContent = "建立裁切圖片時發生問題，請再試一次。";
+            return;
+          }
+          elements.cropMessage.textContent = "";
+          if (game.image) URL.revokeObjectURL(game.image);
+          game.image = URL.createObjectURL(blob);
+          game.bitmap = null;
+          elements.victoryImage.src = game.image;
+          prepareGame();
+          setView("game");
+          elements.gameCanvas.focus({ preventScroll: true });
+        }, "image/png");
+      }
+
+      function createBricks() {
+        game.bricks = [];
+        const tileWidth = (BRICK_SIZE - BRICK_GAP * (BRICK_COLUMNS - 1)) / BRICK_COLUMNS;
+        const tileHeight = (BRICK_SIZE - BRICK_GAP * (BRICK_ROWS - 1)) / BRICK_ROWS;
+        for (let row = 0; row < BRICK_ROWS; row += 1) {
+          for (let column = 0; column < BRICK_COLUMNS; column += 1) {
+            game.bricks.push({
+              x: BRICK_X + column * (tileWidth + BRICK_GAP),
+              y: BRICK_Y + row * (tileHeight + BRICK_GAP),
+              width: tileWidth,
+              height: tileHeight,
+              row,
+              column,
+              alive: true
+            });
+          }
+        }
+      }
+
+      function resetBall() {
+        game.paddleX = GAME_WIDTH / 2;
+        game.ballX = GAME_WIDTH / 2;
+        game.ballY = GAME_HEIGHT - 76;
+        game.ballVX = Math.random() < 0.5 ? -205 : 205;
+        game.ballVY = -330;
+      }
+
+      function prepareGame() {
+        game.score = 0;
+        game.lives = INITIAL_LIVES;
+        game.state = "ready";
+        game.leftPressed = false;
+        game.rightPressed = false;
+        createBricks();
+        resetBall();
+        elements.gameOverlay.classList.remove("is-visible");
+        elements.startButton.hidden = false;
+        elements.pauseButton.hidden = true;
+        elements.pauseButton.disabled = false;
+        elements.pauseButton.innerHTML = '暫停 <span aria-hidden="true">Ⅱ</span>';
+        updateStats();
+        drawGame();
+      }
+
+      function updateStats() {
+        elements.scoreValue.textContent = String(game.score).padStart(3, "0");
+        elements.brickValue.textContent = String(game.bricks.filter((brick) => brick.alive).length).padStart(2, "0");
+        elements.livesValue.textContent = game.lives ? "♥ ".repeat(game.lives).trim() : "—";
+        const labels = { ready: "準備開始", playing: "遊戲中", paused: "已暫停", won: "完成", lost: "遊戲結束" };
+        elements.statusValue.textContent = labels[game.state] || "準備開始";
+      }
+
+      function roundedRect(context, x, y, width, height, radius) {
+        context.beginPath();
+        context.roundRect(x, y, width, height, radius);
+        context.fill();
+      }
+
+      function drawGame() {
+        const context = gameContext;
+        context.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        const background = context.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+        background.addColorStop(0, "#131c29");
+        background.addColorStop(1, "#0c121b");
+        context.fillStyle = background;
+        context.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+        context.save();
+        context.strokeStyle = "rgb(135 157 184 / 7%)";
+        context.lineWidth = 1;
+        for (let x = 30; x < GAME_WIDTH; x += 30) {
+          context.beginPath();
+          context.moveTo(x, 0);
+          context.lineTo(x, GAME_HEIGHT);
+          context.stroke();
+        }
+        for (let y = 30; y < GAME_HEIGHT; y += 30) {
+          context.beginPath();
+          context.moveTo(0, y);
+          context.lineTo(GAME_WIDTH, y);
+          context.stroke();
+        }
+        context.restore();
+
+        const tileWidth = (BRICK_SIZE - BRICK_GAP * (BRICK_COLUMNS - 1)) / BRICK_COLUMNS;
+        const tileHeight = (BRICK_SIZE - BRICK_GAP * (BRICK_ROWS - 1)) / BRICK_ROWS;
+        for (const brick of game.bricks) {
+          if (!brick.alive) continue;
+          if (game.image) {
+            if (!game.bitmap) {
+              game.bitmap = new Image();
+              game.bitmap.onload = drawGame;
+              game.bitmap.src = game.image;
+            }
+            if (game.bitmap.complete && game.bitmap.naturalWidth) {
+              context.drawImage(game.bitmap, brick.column * OUTPUT_SIZE / BRICK_COLUMNS, brick.row * OUTPUT_SIZE / BRICK_ROWS, OUTPUT_SIZE / BRICK_COLUMNS, OUTPUT_SIZE / BRICK_ROWS, brick.x, brick.y, tileWidth, tileHeight);
+            } else {
+              context.fillStyle = "#283648";
+              context.fillRect(brick.x, brick.y, tileWidth, tileHeight);
+            }
+          }
+          context.strokeStyle = "rgb(255 255 255 / 40%)";
+          context.lineWidth = 1;
+          context.strokeRect(brick.x + .5, brick.y + .5, tileWidth - 1, tileHeight - 1);
+          context.fillStyle = "rgb(8 13 21 / 10%)";
+          context.fillRect(brick.x, brick.y, tileWidth, tileHeight);
+        }
+
+        const paddleY = GAME_HEIGHT - 49;
+        const paddleGradient = context.createLinearGradient(game.paddleX - PADDLE_WIDTH / 2, paddleY, game.paddleX + PADDLE_WIDTH / 2, paddleY + PADDLE_HEIGHT);
+        paddleGradient.addColorStop(0, "#d6ff62");
+        paddleGradient.addColorStop(1, "#9de7be");
+        context.save();
+        context.shadowColor = "rgb(214 255 98 / 45%)";
+        context.shadowBlur = 18;
+        context.fillStyle = paddleGradient;
+        roundedRect(context, game.paddleX - PADDLE_WIDTH / 2, paddleY, PADDLE_WIDTH, PADDLE_HEIGHT, 8);
+        context.restore();
+
+        context.save();
+        context.shadowColor = "rgb(88 217 232 / 75%)";
+        context.shadowBlur = 18;
+        context.beginPath();
+        context.arc(game.ballX, game.ballY, BALL_RADIUS, 0, Math.PI * 2);
+        context.fillStyle = "#ecffff";
+        context.fill();
+        context.restore();
+
+        if (game.state === "ready" || game.state === "paused") {
+          context.fillStyle = "rgb(10 15 23 / 66%)";
+          roundedRect(context, GAME_WIDTH / 2 - 190, GAME_HEIGHT / 2 - 38, 380, 76, 14);
+          context.fillStyle = "#f1f4f8";
+          context.font = "700 19px system-ui, sans-serif";
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText(game.state === "ready" ? "按下「開始遊戲」或空白鍵" : "已暫停", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+        }
+      }
+
+      function startGame() {
+        if (game.state !== "ready") return;
+        game.state = "playing";
+        elements.startButton.hidden = true;
+        elements.pauseButton.hidden = false;
+        updateStats();
+        if (!game.animationId) {
+          game.lastFrame = performance.now();
+          game.animationId = requestAnimationFrame(gameLoop);
+        }
+      }
+
+      function togglePause() {
+        if (game.state === "ready") {
+          startGame();
+        } else if (game.state === "playing") {
+          game.state = "paused";
+          game.leftPressed = false;
+          game.rightPressed = false;
+          elements.pauseButton.innerHTML = '繼續 <span aria-hidden="true">▶</span>';
+          updateStats();
+          drawGame();
+        } else if (game.state === "paused") {
+          game.state = "playing";
+          game.lastFrame = performance.now();
+          elements.pauseButton.innerHTML = '暫停 <span aria-hidden="true">Ⅱ</span>';
+          updateStats();
+          drawGame();
+          if (!game.animationId) game.animationId = requestAnimationFrame(gameLoop);
+        }
+      }
+
+      function finishGame(won) {
+        game.state = won ? "won" : "lost";
+        game.leftPressed = false;
+        game.rightPressed = false;
+        elements.pauseButton.disabled = true;
+        elements.pauseButton.hidden = true;
+        elements.gameOverlay.classList.add("is-visible");
+        elements.resultCard.classList.toggle("is-victory", won);
+        elements.resultEyebrow.textContent = won ? "ROUND COMPLETE" : "GAME OVER";
+        elements.resultTitle.textContent = won ? "拼回來了！" : "再試一次？";
+        elements.resultMessage.textContent = won ? "每一塊都是你的回憶。" : `你拼回了 ${game.score} 塊，照片還在等你。`;
+        updateStats();
+        drawGame();
+        elements.playAgainButton.focus({ preventScroll: true });
+      }
+
+      function gameLoop(timestamp) {
+        if (game.state !== "playing") {
+          game.animationId = 0;
+          return;
+        }
+        const delta = Math.min((timestamp - game.lastFrame) / 1000, MAX_FRAME_DELTA);
+        game.lastFrame = timestamp;
+        updateGame(delta);
+        drawGame();
+        updateStats();
+        if (game.state === "playing") {
+          game.animationId = requestAnimationFrame(gameLoop);
+        } else {
+          game.animationId = 0;
+        }
+      }
+
+      function updateGame(delta) {
+        const paddleY = GAME_HEIGHT - 49;
+        if (game.leftPressed) game.paddleX -= 590 * delta;
+        if (game.rightPressed) game.paddleX += 590 * delta;
+        game.paddleX = clamp(game.paddleX, PADDLE_WIDTH / 2 + 8, GAME_WIDTH - PADDLE_WIDTH / 2 - 8);
+        const previousX = game.ballX;
+        const previousY = game.ballY;
+        game.ballX += game.ballVX * delta;
+        game.ballY += game.ballVY * delta;
+
+        if (game.ballX - BALL_RADIUS < 0) {
+          game.ballX = BALL_RADIUS;
+          game.ballVX = Math.abs(game.ballVX);
+        } else if (game.ballX + BALL_RADIUS > GAME_WIDTH) {
+          game.ballX = GAME_WIDTH - BALL_RADIUS;
+          game.ballVX = -Math.abs(game.ballVX);
+        }
+        if (game.ballY - BALL_RADIUS < 0) {
+          game.ballY = BALL_RADIUS;
+          game.ballVY = Math.abs(game.ballVY);
+        }
+
+        if (game.ballVY > 0 && game.ballY + BALL_RADIUS >= paddleY &&
+            game.ballY - BALL_RADIUS <= paddleY + PADDLE_HEIGHT &&
+            game.ballX >= game.paddleX - PADDLE_WIDTH / 2 - BALL_RADIUS &&
+            game.ballX <= game.paddleX + PADDLE_WIDTH / 2 + BALL_RADIUS) {
+          const hitOffset = clamp((game.ballX - game.paddleX) / (PADDLE_WIDTH / 2), -1, 1);
+          const speed = Math.min(570, Math.hypot(game.ballVX, game.ballVY) * 1.025);
+          game.ballVX = speed * hitOffset * .82;
+          game.ballVY = -Math.sqrt(Math.max(120 * 120, speed * speed - game.ballVX * game.ballVX));
+          game.ballY = paddleY - BALL_RADIUS;
+        }
+
+        const tileWidth = (BRICK_SIZE - BRICK_GAP * (BRICK_COLUMNS - 1)) / BRICK_COLUMNS;
+        const tileHeight = (BRICK_SIZE - BRICK_GAP * (BRICK_ROWS - 1)) / BRICK_ROWS;
+        for (const brick of game.bricks) {
+          if (!brick.alive) continue;
+          const closestX = clamp(game.ballX, brick.x, brick.x + tileWidth);
+          const closestY = clamp(game.ballY, brick.y, brick.y + tileHeight);
+          const dx = game.ballX - closestX;
+          const dy = game.ballY - closestY;
+          if (dx * dx + dy * dy > BALL_RADIUS * BALL_RADIUS) continue;
+          brick.alive = false;
+          game.score += 1;
+          if (previousY + BALL_RADIUS <= brick.y || previousY - BALL_RADIUS >= brick.y + tileHeight) {
+            game.ballVY *= -1;
+          } else if (previousX + BALL_RADIUS <= brick.x || previousX - BALL_RADIUS >= brick.x + tileWidth) {
+            game.ballVX *= -1;
+          } else {
+            game.ballVY *= -1;
+          }
+          if (game.bricks.every((item) => !item.alive)) finishGame(true);
+          break;
+        }
+
+        if (game.ballY - BALL_RADIUS > GAME_HEIGHT) {
+          game.lives -= 1;
+          if (game.lives <= 0) finishGame(false);
+          else resetBall();
+        }
+      }
+
+      function movePaddleToPointer(event) {
+        if (game.state !== "playing" && game.state !== "ready") return;
+        const bounds = elements.gameCanvas.getBoundingClientRect();
+        const x = (event.clientX - bounds.left) * GAME_WIDTH / bounds.width;
+        game.paddleX = clamp(x, PADDLE_WIDTH / 2 + 8, GAME_WIDTH - PADDLE_WIDTH / 2 - 8);
+        drawGame();
+      }
+
+      function goToUpload() {
+        if (game.animationId) {
+          cancelAnimationFrame(game.animationId);
+          game.animationId = 0;
+        }
+        game.state = "idle";
+        if (game.image) URL.revokeObjectURL(game.image);
+        game.image = null;
+        game.bitmap = null;
+        if (sourceUrl) {
+          URL.revokeObjectURL(sourceUrl);
+          sourceUrl = null;
+        }
+        elements.victoryImage.removeAttribute("src");
+        elements.gameOverlay.classList.remove("is-visible");
+        elements.imageInput.value = "";
+        elements.uploadMessage.textContent = "";
+        crop.image = null;
+        setView("upload");
+      }
+
+      elements.chooseImageButton.addEventListener("click", openFilePicker);
+      elements.dropZone.addEventListener("click", (event) => {
+        if (!event.target.closest("button")) openFilePicker();
+      });
+      elements.imageInput.addEventListener("change", (event) => {
+        loadImageFile(event.target.files && event.target.files[0]);
+        event.target.value = "";
+      });
+      ["dragenter", "dragover"].forEach((type) => elements.dropZone.addEventListener(type, (event) => {
+        event.preventDefault();
+        elements.dropZone.classList.add("is-dragging");
+      }));
+      ["dragleave", "drop"].forEach((type) => elements.dropZone.addEventListener(type, (event) => {
+        event.preventDefault();
+        elements.dropZone.classList.remove("is-dragging");
+      }));
+      elements.dropZone.addEventListener("drop", (event) => loadImageFile(event.dataTransfer.files && event.dataTransfer.files[0]));
+
+      elements.cropCanvas.addEventListener("pointerdown", onCropPointerDown);
+      elements.cropCanvas.addEventListener("pointermove", onCropPointerMove);
+      elements.cropCanvas.addEventListener("pointerup", onCropPointerUp);
+      elements.cropCanvas.addEventListener("pointercancel", onCropPointerUp);
+      elements.zoomSlider.addEventListener("input", () => {
+        crop.zoom = Number(elements.zoomSlider.value) / 100;
+        elements.zoomValue.textContent = `${elements.zoomSlider.value}%`;
+        drawCrop();
+      });
+      elements.resetCropButton.addEventListener("click", resetCrop);
+      elements.confirmCropButton.addEventListener("click", confirmCrop);
+      elements.backToUploadButton.addEventListener("click", () => setView("upload"));
+
+      elements.startButton.addEventListener("click", startGame);
+      elements.pauseButton.addEventListener("click", togglePause);
+      elements.restartButton.addEventListener("click", () => { prepareGame(); startGame(); });
+      elements.changeImageButton.addEventListener("click", goToUpload);
+      elements.resultChangeButton.addEventListener("click", goToUpload);
+      elements.playAgainButton.addEventListener("click", () => { prepareGame(); startGame(); });
+
+      elements.gameCanvas.addEventListener("pointerdown", (event) => {
+        game.pointerActive = true;
+        elements.gameCanvas.setPointerCapture(event.pointerId);
+        movePaddleToPointer(event);
+        if (game.state === "ready") startGame();
+      });
+      elements.gameCanvas.addEventListener("pointermove", (event) => {
+        if (game.pointerActive || event.pointerType === "mouse") movePaddleToPointer(event);
+      });
+      ["pointerup", "pointercancel"].forEach((type) => elements.gameCanvas.addEventListener(type, () => { game.pointerActive = false; }));
+
+      window.addEventListener("keydown", (event) => {
+        if (!elements.gameView.classList.contains("is-visible")) return;
+        if (event.target instanceof HTMLInputElement) return;
+        if (event.target instanceof HTMLButtonElement && event.code === "Space") return;
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          game.leftPressed = true;
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          game.rightPressed = true;
+        } else if (event.code === "Space") {
+          event.preventDefault();
+          togglePause();
+        }
+      });
+      window.addEventListener("keyup", (event) => {
+        if (event.key === "ArrowLeft") game.leftPressed = false;
+        if (event.key === "ArrowRight") game.rightPressed = false;
+      });
+      window.addEventListener("blur", () => {
+        game.leftPressed = false;
+        game.rightPressed = false;
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden && game.state === "playing") togglePause();
+      });
+
+      setView("upload");
+      drawGame();
+    })();
+  </script>
+</body>
+</html>
