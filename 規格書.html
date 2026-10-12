@@ -4,17 +4,54 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="互動式圖片裁切與打磚塊遊戲規格書">
-  <title>互動式圖片打磚塊遊戲｜規格書</title>
+  <title>PICTURE-RIOT｜互動式圖片打磚塊遊戲規格書</title>
+  <style>
+    .latest-update {
+      margin: 24px 0;
+      padding: 18px 22px;
+      border: 1px solid #8abf35;
+      border-left: 6px solid #73a91c;
+      border-radius: 8px;
+      background: #f2f9e8;
+    }
+
+    .latest-update h2 {
+      margin-top: 0;
+      color: #355a0b;
+      font-size: 1.2rem;
+    }
+
+    .latest-update p:last-child,
+    .latest-update ul:last-child {
+      margin-bottom: 0;
+    }
+
+    .product-name {
+      color: #355a0b;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1>互動式圖片打磚塊遊戲</h1>
+    <h1><span class="product-name">PICTURE-RIOT</span></h1>
     <p class="subtitle">產品需求與功能規格書</p>
   </header>
 
   <main>
     <section class="summary" aria-label="產品摘要">
-      <p>使用者上傳任意圖片並裁切為正方形後，系統將裁切結果切分並顯示為遊戲磚塊。使用者透過打磚塊玩法逐步清除磚塊，完成後即可觀看完整圖片。</p>
+      <p><span class="product-name">PICTURE-RIOT</span> 是一款互動式圖片打磚塊遊戲。使用者選取任意圖片並裁切為正方形後，系統將裁切結果切分為遊戲磚塊；逐步清除磚塊即可拼回完整圖片。</p>
+    </section>
+
+    <section class="latest-update" aria-labelledby="latestUpdateTitle">
+      <h2 id="latestUpdateTitle">本次更新｜2026 年 10 月 13 日</h2>
+      <ul>
+        <li><strong>遊戲名稱：</strong>統一更名為 <span class="product-name">PICTURE-RIOT</span>，套用於網頁分頁標題、頁首品牌及頁尾。</li>
+        <li><strong>遊戲畫面高度：</strong>球場內部座標調整為 900 × 600，遊戲畫布維持 3:2 長寬比，並依可用螢幕寬度與高度縮放。</li>
+        <li><strong>短螢幕操作：</strong>矮螢幕縮減頁面間距；極矮螢幕隱藏非必要的操作提示及頁尾，優先保留遊戲區與主要按鈕。</li>
+        <li><strong>磚塊排列：</strong>使用 8 × 8 磚塊網格，磚塊拼合後呈現使用者裁切的圖片。</li>
+      </ul>
     </section>
 
     <section>
@@ -129,7 +166,9 @@
         <li><strong>桌面滑鼠：</strong>可在遊戲區左右移動滑鼠控制擋板；按鈕與裁切操作可用滑鼠點擊。</li>
         <li><strong>行動裝置：</strong>支援觸控拖曳擋板，並提供可觸控的開始、暫停及結果操作按鈕。</li>
         <li>遊戲操作時應避免方向鍵或觸控操作造成頁面不必要的捲動。</li>
-        <li>內容須依螢幕寬度調整，遊戲區不可超出可視畫面；文字、按鈕及提示在小螢幕上仍須清楚可讀。</li>
+        <li>內容須同時依螢幕寬度與可視高度調整，遊戲區保持固定長寬比並縮放至可用空間內，避免球場過高而遮住操作按鈕或讓使用者難以操控。</li>
+        <li>矮螢幕應縮減頁面頂部、流程列與遊戲狀態列的間距；極矮螢幕可隱藏非必要的操作提示與頁尾，優先保留完整遊戲區及主要控制按鈕。</li>
+        <li>文字、按鈕及必要提示在小螢幕上仍須清楚可讀；遊戲區不可超出可視畫面寬度。</li>
         <li>按鈕需有明確文字或可存取名稱、可見的鍵盤焦點狀態及足夠的點擊／觸控範圍。</li>
         <li>狀態不可只以顏色表達；錯誤、暫停、勝利及失敗皆須有文字或圖示以外的文字標示。</li>
       </ul>
@@ -141,7 +180,9 @@
         <li>交付物為一份可直接以現代瀏覽器開啟的 <code>index.html</code>；CSS 與 JavaScript 內嵌於 HTML。</li>
         <li>不得依賴外部圖片、外部字型、遠端服務或未隨檔案提供的資源，確保單檔可離線執行。</li>
         <li>本機圖片處理、裁切及遊戲繪製均於瀏覽器端完成。</li>
-        <li>主要操作不應因畫面重新載入或尺寸變更而造成不可恢復的錯誤；尺寸變更時遊戲區應重新適配。</li>
+        <li><span class="product-name">PICTURE-RIOT</span> 遊戲球場採 900 × 600 的內部繪製座標，磚塊區為 8 × 8；顯示畫布須維持 3:2 長寬比，並依視窗寬度與高度限制縮放。</li>
+        <li>主要操作不應因畫面重新載入或尺寸變更而造成不可恢復的錯誤；尺寸變更時遊戲區應重新適配，且球體、擋板與磚塊的操作座標須與縮放後的畫布一致。</li>
+        <li>低視窗高度時，版面應優先保留遊戲區與主要操作按鈕，並可隱藏非必要提示及頁尾以減少捲動需求。</li>
         <li>遊戲更新應在暫停、勝利或失敗後停止，避免畫面狀態持續變動。</li>
         <li>以語意化 HTML 提供頁面結構；互動控制項應可透過鍵盤操作。</li>
       </ul>
@@ -168,6 +209,7 @@
         <li>擊中磚塊會使磚塊消失；球體落出底部會扣除生命；生命歸零顯示失敗。</li>
         <li>所有磚塊清除後顯示勝利與完整圖片，且遊戲不再繼續更新。</li>
         <li>重新開始會重置遊戲狀態；更換圖片後不會殘留舊圖片或舊進度。</li>
+        <li>桌面與行動裝置的短視窗高度下，遊戲畫布依可用高度縮放且維持 3:2 比例；遊戲區及開始／暫停等主要控制不會因固定高度而超出畫面。</li>
         <li>單一 <code>index.html</code> 在現代桌面與行動瀏覽器中可直接開啟，且不需網路或額外檔案即可完成主要流程。</li>
       </ol>
     </section>
@@ -185,7 +227,7 @@
   </main>
 
   <footer>
-    <p>文件類型：功能規格書｜語言：繁體中文｜狀態：需求基準</p>
+    <p>PICTURE-RIOT｜文件類型：功能規格書｜語言：繁體中文｜最近更新：2026 年 10 月 13 日</p>
   </footer>
 </body>
 </html>
